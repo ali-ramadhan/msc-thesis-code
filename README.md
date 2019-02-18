@@ -3,7 +3,7 @@ Code for [Molecular movies and geometry reconstruction using Coulomb explosion i
 
 I decided to throw a lot of things into here, many of which didn't make it into the thesis but may have gone into a paper (Ramadhan et al., [Ultrafast molecular dynamics of dissociative ionization in OCS probed by soft x-ray synchrotron radiation](https://iopscience.iop.org/article/10.1088/0953-4075/49/21/215602/meta), Journal of Physics B: Atomic, Molecular and Optical Physics, 2016).
 
-I'm really sorry if you find yourself here. I cringe when I read the code I wrote here, it's really bad.
+I'm really sorry if you find yourself here. I cringe with shame when I look at this repo, the code is horrible and the workflow was so painful. No modular pieces, no version control, no organization. No be fair, using commercial software like MATLAB and Origin didn't help.
 
 Other relevant repositories:
 * [mmmgrubs](https://github.com/ali-ramadhan/mmmgrubs): MMMGRUBS: Molecular Motion Movies and Geometry Reconstruction Using Bayesian Statistics. This was my attempt at reconstructing molecular geometries using Bayesian inference and inverse modeling (in Stan). I couldn't get the Markov chain to sample at all, so it doesn't work right now.
