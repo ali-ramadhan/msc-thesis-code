@@ -1,0 +1,113 @@
+// Filename:    Custom.ogs
+// Purpose:     The Custom Routine button on the standard toolbar will use this code, by calling
+//		the [Main] section 
+// Modifications:
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Main Code 
+////////////////////////////////////////////////////////////////////////////////
+[Main]
+/* Lets you select a momentum text file and imports the data into a worksheet. This script expects a 9-column
+ * momentum text file with columns P_x, P_y, P_z, P_x, P_y, P_z, P_x, P_y, P_z where the first triple belong to
+ * the first fragment, the second triple belongs to the second fragment, etc. This script does not expect SI
+ * units but rather whatever the CEIDataCalibration.exe ROOT program outputs from the coincidence analyzer, so
+ * the momentum values are multiplied by 1e-22 after being imported. You can choose the names and masses
+ * of the three fragments.
+ */
+dlgfile fname:=momentumTextFile group:="*.txt" title:="Select 9-column momentum text file";
+newbook name:="KERAnalysis" sheet:=1 option:=lsname;
+impASC fname:=momentumTextFile$ options.sparklines:=0 options.ImpMode:=0 Options.FileStruct.DataStruct:=1 Options.FileStruct.Delimiter:=0;
+wks.name$ = "KER Calculations";
+
+// Rename the workbook's short name so we can reference it later on in the script. For some reason, the newbook
+// X-function doesn't properly name the workbook.
+string wn$ = page.name$;
+win -r %(wn$) "KERAnalysis";
+
+// Sets up default parameter variables.
+string workbookShortName$ = "KER90eV111";
+string frag1$ = "O+", frag2$ = "C+", frag3$ = "S+";
+double frag1AmuMass = 16, frag2AmuMass = 12, frag3AmuMass = 32;
+double KERMinBin = 0, KERMaxBin = 50, KERBinWidth = 1;
+
+// Asks the user for parameters.
+getn
+(Workbook short name [no spaces]) workbookShortName$
+(Fragment 1 name) frag1$
+(Fragment 2 name) frag2$
+(Fragment 3 name) frag3$
+(Fragment 1 mass [amu]) frag1AmuMass
+(Fragment 2 mass [amu]) frag2AmuMass
+(Fragment 3 mass [amu]) frag3AmuMass
+(KER minimum bin [eV]) KERMinBin
+(KER maximum bin [eV]) KERMaxBin
+(KER bin width [eV]) KERBinWidth
+(Triple coincidence KER plot parameters);
+
+// Define ranges for all the imported columns, and give long names and units to the columns.
+// Also, convert all momentum measurements into SI units (just have to multiply by a scaling factor).
+range P_1_x = 1, P_1_y = 2, P_1_z = 3, P_2_x = 4, P_2_y = 5, P_2_z = 6, P_3_x = 7, P_3_y = 8, P_3_z = 9;
+P_1_x.lname$ = frag1$ + " P_x"; P_1_x.unit$="[kg m/s]"; P_1_x = P_1_x*1e-22; wcolwidth irng:=P_1_x width:=9;
+P_1_y.lname$ = frag1$ + " P_y"; P_1_y.unit$="[kg m/s]"; P_1_y = P_1_y*1e-22; wcolwidth irng:=P_1_y width:=9;
+P_1_z.lname$ = frag1$ + " P_z"; P_1_z.unit$="[kg m/s]"; P_1_z = P_1_z*1e-22; wcolwidth irng:=P_1_z width:=9;
+P_2_x.lname$ = frag2$ + " P_x"; P_2_x.unit$="[kg m/s]"; P_2_x = P_2_x*1e-22; wcolwidth irng:=P_2_x width:=9;
+P_2_y.lname$ = frag2$ + " P_y"; P_2_y.unit$="[kg m/s]"; P_2_y = P_2_y*1e-22; wcolwidth irng:=P_2_y width:=9;
+P_2_z.lname$ = frag2$ + " P_z"; P_2_z.unit$="[kg m/s]"; P_2_z = P_2_z*1e-22; wcolwidth irng:=P_2_z width:=9;
+P_3_x.lname$ = frag3$ + " P_x"; P_3_x.unit$="[kg m/s]"; P_3_x = P_3_x*1e-22; wcolwidth irng:=P_3_x width:=9;
+P_3_y.lname$ = frag3$ + " P_y"; P_3_y.unit$="[kg m/s]"; P_3_y = P_3_y*1e-22; wcolwidth irng:=P_3_y width:=9;
+P_3_z.lname$ = frag3$ + " P_z"; P_3_z.unit$="[kg m/s]"; P_3_z = P_3_z*1e-22; wcolwidth irng:=P_3_z width:=9;
+
+// Some constants we'll use.
+double amu = 1.66053886e-27;  // [kg]
+double q0  = 1.602176565e-19; // [C]
+
+// Calculate the kinetic energy of each fragment using p^2/2m.
+wks.nCols = wks.nCols + 4; // Add 4 new columns to the current worksheet.
+range E_1 = 10; range E_2 = 11; range E_3 = 12; range E_T = 13;
+E_1 = (1/(2*frag1AmuMass*amu*q0)) * ( P_1_x^2 + P_1_y^2 + P_1_z^2 ); E_1.lname$ = frag1$ + " KER"; E_1.unit$="[eV]"; wcolwidth irng:=E_1 width:=7;
+E_2 = (1/(2*frag2AmuMass*amu*q0)) * ( P_2_x^2 + P_2_y^2 + P_2_z^2 ); E_2.lname$ = frag2$ + " KER"; E_2.unit$="[eV]"; wcolwidth irng:=E_2 width:=7;
+E_3 = (1/(2*frag3AmuMass*amu*q0)) * ( P_3_x^2 + P_3_y^2 + P_3_z^2 ); E_3.lname$ = frag3$ + " KER"; E_3.unit$="[eV]"; wcolwidth irng:=E_3 width:=7;
+E_T = E_1 + E_2 + E_3;                                  E_T.lname$ = "total KER";     E_T.unit$="[eV]"; wcolwidth irng:=E_T width:=7;
+
+// Do a frequency count on the 4 energy columns we just calculated. This will bin them according to the
+// user picked parameters and will let you plot the KER distribution very easily.
+freqcounts irng:=10:13 rd:=[KERAnalysis]KERbins! bin:=center min:=KERMinBin max:=KERMaxBin stepby:=increment inc:=KERBinWidth end:=0 cumulcount:=0; page.active = 1;
+
+// Define ranges for the binned KER columns so we can reference them later on.
+range bins   = [KERAnalysis]KERBins!col(1);
+range E_1Col = [KERAnalysis]KERBins!col(2);
+range E_2Col = [KERAnalysis]KERBins!col(3);
+range E_3Col = [KERAnalysis]KERBins!col(4);
+range E_TCol = [KERAnalysis]KERBins!col(5);
+
+// Gives meaningful names and units to the binned KER columns.
+bins.lname$ = "KER"; bins.unit$="[eV]"; wcolwidth irng:=bins width:=6;
+E_1Col.lname$ = frag1$; E_1Col.unit$="[counts]"; wcolwidth irng:=E_1Col width:=6;
+E_2Col.lname$ = frag2$; E_2Col.unit$="[counts]"; wcolwidth irng:=E_2Col width:=6;
+E_3Col.lname$ = frag3$; E_3Col.unit$="[counts]"; wcolwidth irng:=E_3Col width:=6;
+E_TCol.lname$ = "total"; E_TCol.unit$="[counts]"; wcolwidth irng:=E_TCol width:=6;
+
+// Create a new worksheet so we can normalize these bins.
+newsheet name:="KERBinsNormalized" cols:=5 xy:="XYYYY";
+
+// Copy over the KER bin column.
+colcopy irng:=bins orng:=[KERAnalysis]KERBinsNormalized!Col(1);
+range bins2 = [KERAnalysis]KERBinsNormalized!Col(1); bins2.lname$ = "KER"; bins2.unit$="[eV]"; wcolwidth irng:=bins2 width:=6;
+
+// Define ranges for where the normalized columns will be. We use these in a sec.
+range E_1NormCol = [KERAnalysis]KERBinsNormalized!col(2);
+range E_2NormCol = [KERAnalysis]KERBinsNormalized!col(3);
+range E_3NormCol = [KERAnalysis]KERBinsNormalized!col(4);
+range E_TNormCol = [KERAnalysis]KERBinsNormalized!col(5);
+
+// Normalize all the binned KER columns so that all values are between 0 and 1. Now when you plot them, they all
+// peak at 1, so you can compare KER distribution shapes without worrying about the distributions all having different
+// heights.
+normalize iy:=E_1Col method:=range oy:=E_1NormCol; E_1NormCol.lname$ = frag1$; E_1NormCol.unit$="[arb. units]"; wcolwidth irng:=E_1NormCol width:=8;
+normalize iy:=E_2Col method:=range oy:=E_2NormCol; E_2NormCol.lname$ = frag2$; E_2NormCol.unit$="[arb. units]"; wcolwidth irng:=E_2NormCol width:=8;
+normalize iy:=E_3Col method:=range oy:=E_3NormCol; E_3NormCol.lname$ = frag3$; E_3NormCol.unit$="[arb. units]"; wcolwidth irng:=E_3NormCol width:=8;
+normalize iy:=E_TCol method:=range oy:=E_TNormCol; E_TNormCol.lname$ = "total"; E_TNormCol.unit$="[arb. units]"; wcolwidth irng:=E_TNormCol width:=8;
+
+string wn$ = page.name$;
+win -r %(wn$) %(workbookShortName$);

@@ -1,0 +1,70 @@
+dlgfile fname:=momentumTextFile group:="*.txt" title:="Select 9-column momentum text file";
+newbook name:="KERAnalysis" sheet:=1 option:=lsname;
+impASC fname:=momentumTextFile$ options.sparklines:=0 options.ImpMode:=0 Options.FileStruct.DataStruct:=1 Options.FileStruct.Delimiter:=0;
+wks.name$ = "KER Calculations";
+
+// Rename the workbook's short name. For some reason, the newbook X-function doesn't probably name the workbook.
+string wn$ = page.name$;
+win -r %(wn$) "KERAnalysis";
+
+// Define ranges for all the imported columns, and give long names and units to the columns.
+// Also, convert all momentum measurements into SI units.
+range P_1_x = 1, P_1_y = 2, P_1_z = 3, P_2_x = 4, P_2_y = 5, P_2_z = 6, P_3_x = 7, P_3_y = 8, P_3_z = 9;
+P_1_x.lname$ = "P_1_x"; P_1_x.unit$="[kg m/s]"; P_1_x = P_1_x*1e-22; wcolwidth irng:=P_1_x width:=9;
+P_1_y.lname$ = "P_1_y"; P_1_y.unit$="[kg m/s]"; P_1_y = P_1_y*1e-22; wcolwidth irng:=P_1_y width:=9;
+P_1_z.lname$ = "P_1_z"; P_1_z.unit$="[kg m/s]"; P_1_z = P_1_z*1e-22; wcolwidth irng:=P_1_z width:=9;
+P_2_x.lname$ = "P_2_x"; P_2_x.unit$="[kg m/s]"; P_2_x = P_2_x*1e-22; wcolwidth irng:=P_2_x width:=9;
+P_2_y.lname$ = "P_2_y"; P_2_y.unit$="[kg m/s]"; P_2_y = P_2_y*1e-22; wcolwidth irng:=P_2_y width:=9;
+P_2_z.lname$ = "P_2_z"; P_2_z.unit$="[kg m/s]"; P_2_z = P_2_z*1e-22; wcolwidth irng:=P_2_z width:=9;
+P_3_x.lname$ = "P_3_x"; P_3_x.unit$="[kg m/s]"; P_3_x = P_3_x*1e-22; wcolwidth irng:=P_3_x width:=9;
+P_3_y.lname$ = "P_3_y"; P_3_y.unit$="[kg m/s]"; P_3_y = P_3_y*1e-22; wcolwidth irng:=P_3_y width:=9;
+P_3_z.lname$ = "P_3_z"; P_3_z.unit$="[kg m/s]"; P_3_z = P_3_z*1e-22; wcolwidth irng:=P_3_z width:=9;
+
+double amu = 1.66053886e-27;  // [kg]
+double q0  = 1.602176565e-19; // [C]
+double m_O = 15.999*amu;
+double m_C = 12.011*amu;
+double m_S = 32.065*amu;
+
+wks.nCols = wks.nCols + 4; // Add 4 new columns to the current worksheet.
+range E_1 = 10; range E_2 = 11; range E_3 = 12; range E_T = 13;
+E_1 = (1/(2*m_O*q0)) * ( P_1_x^2 + P_1_y^2 + P_1_z^2 ); E_1.lname$ = "E_1"; E_1.unit$="[eV]"; wcolwidth irng:=E_1 width:=7;
+E_2 = (1/(2*m_C*q0)) * ( P_2_x^2 + P_2_y^2 + P_2_z^2 ); E_2.lname$ = "E_2"; E_2.unit$="[eV]"; wcolwidth irng:=E_2 width:=7;
+E_3 = (1/(2*m_S*q0)) * ( P_3_x^2 + P_3_y^2 + P_3_z^2 ); E_3.lname$ = "E_3"; E_3.unit$="[eV]"; wcolwidth irng:=E_3 width:=7;
+E_T = E_1 + E_2 + E_3;                                  E_T.lname$ = "E_T"; E_T.unit$="[eV]"; wcolwidth irng:=E_T width:=7;
+
+freqcounts irng:=E_1 rd:=[KERAnalysis]E1bins! bin:=center min:=0 max:=50 stepby:=increment inc:=1 end:=0 cumulcount:=0; page.active = 1;
+freqcounts irng:=E_2 rd:=[KERAnalysis]E2bins! bin:=center min:=0 max:=50 stepby:=increment inc:=1 end:=0 cumulcount:=0; page.active = 1;
+freqcounts irng:=E_3 rd:=[KERAnalysis]E3bins! bin:=center min:=0 max:=50 stepby:=increment inc:=1 end:=0 cumulcount:=0; page.active = 1;
+freqcounts irng:=E_T rd:=[KERAnalysis]ETbins! bin:=center min:=0 max:=50 stepby:=increment inc:=1 end:=0 cumulcount:=0; page.active = 1;
+
+newsheet name:="KERBins" cols:=5 xy:="XYYYY";
+wrcopy iw:=[KERAnalysis]E1bins! ow:=[KERAnalysis]KERBins!;
+colcopy irng:=[KERAnalysis]E2bins!Col(2) orng:=[KERAnalysis]KERBins!Col(3);
+colcopy irng:=[KERAnalysis]E3bins!Col(2) orng:=[KERAnalysis]KERBins!Col(4);
+colcopy irng:=[KERAnalysis]ETbins!Col(2) orng:=[KERAnalysis]KERBins!Col(5);
+
+range bins = [KERAnalysis]KERBins!col(1);
+range E_1Col = [KERAnalysis]KERBins!col(2);
+range E_2Col = [KERAnalysis]KERBins!col(3);
+range E_3Col = [KERAnalysis]KERBins!col(4);
+range E_TCol = [KERAnalysis]KERBins!col(5);
+
+bins.lname$ = "KER"; bins.unit$="[eV]"; wcolwidth irng:=bins width:=6;
+E_1Col.lname$ = "E_1 counts"; E_1Col.unit$="[arbitrary units]"; wcolwidth irng:=E_1Col width:=6;
+E_2Col.lname$ = "E_2 counts"; E_2Col.unit$="[arbitrary units]"; wcolwidth irng:=E_2Col width:=6;
+E_3Col.lname$ = "E_3 counts"; E_3Col.unit$="[arbitrary units]"; wcolwidth irng:=E_3Col width:=6;
+E_TCol.lname$ = "E_T counts"; E_TCol.unit$="[arbitrary units]"; wcolwidth irng:=E_TCol width:=6;
+
+newsheet name:="KERBinsNormalized" cols:=5 xy:="XYYYY";
+colcopy irng:=bins orng:=[KERAnalysis]KERBinsNormalized!Col(1);
+
+range E_1NormCol = [KERAnalysis]KERBinsNormalized!col(2);
+range E_2NormCol = [KERAnalysis]KERBinsNormalized!col(3);
+range E_3NormCol = [KERAnalysis]KERBinsNormalized!col(4);
+range E_TNormCol = [KERAnalysis]KERBinsNormalized!col(5);
+
+normalize iy:=E_1Col method:=range oy:=E_1NormCol; E_1NormCol.lname$ = "E_1 counts"; E_1NormCol.unit$="[arbitrary units]"; wcolwidth irng:=E_1NormCol width:=8;
+normalize iy:=E_2Col method:=range oy:=E_2NormCol; E_2NormCol.lname$ = "E_2 counts"; E_2NormCol.unit$="[arbitrary units]"; wcolwidth irng:=E_2NormCol width:=8;
+normalize iy:=E_3Col method:=range oy:=E_3NormCol; E_3NormCol.lname$ = "E_3 counts"; E_3NormCol.unit$="[arbitrary units]"; wcolwidth irng:=E_3NormCol width:=8;
+normalize iy:=E_TCol method:=range oy:=E_TNormCol; E_TNormCol.lname$ = "E_T counts"; E_TNormCol.unit$="[arbitrary units]"; wcolwidth irng:=E_TNormCol width:=8;

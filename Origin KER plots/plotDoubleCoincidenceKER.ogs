@@ -1,0 +1,92 @@
+dlgfile fname:=momentumTextFile group:="*.txt" title:="Select 8-column (2 t + 6 p) momentum text file";
+newbook name:="KERAnalysis" sheet:=1 option:=lsname;
+impASC fname:=momentumTextFile$ options.sparklines:=0 options.ImpMode:=0 Options.FileStruct.DataStruct:=1 Options.FileStruct.Delimiter:=0;
+wks.name$ = "KER Calculations";
+
+// Rename the workbook's short name. For some reason, the newbook X-function doesn't probably name the workbook.
+string wn$ = page.name$;
+win -r %(wn$) "KERAnalysis";
+
+string workbookShortName$ = "KER90eV110";
+string frag1$ = "O+", frag2$ = "CS+";
+double frag1AmuMass = 16, frag2AmuMass = 44;
+string pxcut$ = "5e-23", pycut$ = "5e-23", pzcut = "5e-24";
+double KERMinBin = 0, KERMaxBin = 50, KERBinWidth = 1;
+
+getn
+(Workbook short name [no spaces]) workbookShortName$
+(Fragment 1 name) frag1$
+(Fragment 2 name) frag2$
+(Fragment 1 mass [amu]) frag1AmuMass
+(Fragment 2 mass [amu]) frag2AmuMass
+(P_x momentum cut [kg m/s]) pxcut$
+(P_y momentum cut [kg m/s]) pycut$
+(P_z momentum cut [kg m/s]) pzcut$
+(KER minimum bin [eV]) KERMinBin
+(KER maximum bin [eV]) KERMaxBin
+(KER bin width [eV]) KERBinWidth
+(Double coincidence KER plot parameters);
+
+// Define ranges for all the imported columns, and give long names and units to the columns.
+// Also, convert all momentum measurements into SI units.
+range t_1 = 1, t_2 = 2, P_1_x = 3, P_1_y = 4, P_1_z = 5, P_2_x = 6, P_2_y = 7, P_2_z = 8;
+t_1.lname$ = "t_1"; t_1.unit$="[s]"; wcolwidth irng:=t_1 width:=9;
+t_2.lname$ = "t_2"; t_2.unit$="[s]"; wcolwidth irng:=t_2 width:=9;
+P_1_x.lname$ = frag1$ + " P_x"; P_1_x.unit$="[kg m/s]"; wcolwidth irng:=P_1_x width:=9;
+P_1_y.lname$ = frag1$ + " P_y"; P_1_y.unit$="[kg m/s]"; wcolwidth irng:=P_1_y width:=9;
+P_1_z.lname$ = frag1$ + " P_z"; P_1_z.unit$="[kg m/s]"; wcolwidth irng:=P_1_z width:=9;
+P_2_x.lname$ = frag2$ + " P_x"; P_2_x.unit$="[kg m/s]"; wcolwidth irng:=P_2_x width:=9;
+P_2_y.lname$ = frag2$ + " P_y"; P_2_y.unit$="[kg m/s]"; wcolwidth irng:=P_2_y width:=9;
+P_2_z.lname$ = frag2$ + " P_z"; P_2_z.unit$="[kg m/s]"; wcolwidth irng:=P_2_z width:=9;
+
+wks.nCols = wks.nCols + 3; // Add 3 new columns to the current worksheet.
+range P_x = 9, P_y = 10, P_z = 11;
+P_x = P_1_x + P_2_x; P_x.lname$ = "P_x"; P_x.unit$="[kg m/s]"; wcolwidth irng:=P_x width:=9;
+P_y = P_1_y + P_2_y; P_y.lname$ = "P_y"; P_y.unit$="[kg m/s]"; wcolwidth irng:=P_y width:=9;
+P_z = P_1_z + P_2_z; P_z.lname$ = "P_z"; P_z.unit$="[kg m/s]"; wcolwidth irng:=P_z width:=9;
+
+wks.col9.filter = 1; wks.col10.filter = 1; wks.col11.filter = 1;
+wks.col9.filterx$ = px; wks.col10.filterx$ = py; wks.col11.filterx$ = pz;
+wks.col9.filter$ = "px.between(-" + pxcut$ + "," + pxcut$ + ")";
+wks.col10.filter$ = "py.between(-" + pycut$ + "," + pycut$ + ")";
+wks.col11.filter$ = "pz.between(-" + pzcut$ + "," + pzcut$ + ")";
+wks.runfilter();
+
+double amu = 1.66053886e-27;  // [kg]
+double q0  = 1.602176565e-19; // [C]
+double m1 = frag1AmuMass*amu;
+double m2 = frag2AmuMass*amu;
+
+wks.nCols = wks.nCols + 3; // Add 3 new columns to the current worksheet.
+range E_1 = 12; range E_2 = 13; range E_T = 14;
+E_1 = (1/(2*m1*q0)) * ( P_1_x^2 + P_1_y^2 + P_1_z^2 ); E_1.lname$ = frag1$ + " KER"; E_1.unit$="[eV]"; wcolwidth irng:=E_1 width:=7;
+E_2 = (1/(2*m2*q0)) * ( P_2_x^2 + P_2_y^2 + P_2_z^2 ); E_2.lname$ = frag2$ + " KER"; E_2.unit$="[eV]"; wcolwidth irng:=E_2 width:=7;
+E_T = E_1 + E_2;                                       E_T.lname$ = "total KER";    E_T.unit$="[eV]"; wcolwidth irng:=E_T width:=7;
+
+freqcounts irng:=12:14 rd:=[KERAnalysis]KERbins! bin:=center min:=KERMinBin max:=KERMaxBin stepby:=increment inc:=KERBinWidth end:=0 cumulcount:=0; page.active = 1;
+
+range bins = [KERAnalysis]KERBins!col(1);
+range E_1Col = [KERAnalysis]KERBins!col(2);
+range E_2Col = [KERAnalysis]KERBins!col(3);
+range E_TCol = [KERAnalysis]KERBins!col(4);
+
+bins.lname$ = "KER"; bins.unit$="[eV]"; wcolwidth irng:=bins width:=6;
+E_1Col.lname$ = frag1$; E_1Col.unit$="[counts]"; wcolwidth irng:=E_1Col width:=6;
+E_2Col.lname$ = frag2$; E_2Col.unit$="[counts]"; wcolwidth irng:=E_2Col width:=6;
+E_TCol.lname$ = "total"; E_TCol.unit$="[counts]"; wcolwidth irng:=E_TCol width:=6;
+
+newsheet name:="KERBinsNormalized" cols:=4 xy:="XYYY";
+
+colcopy irng:=bins orng:=[KERAnalysis]KERBinsNormalized!Col(1);
+range bins2 = [KERAnalysis]KERBinsNormalized!Col(1); bins2.lname$ = "KER"; bins2.unit$="[eV]"; wcolwidth irng:=bins2 width:=6;
+
+range E_1NormCol = [KERAnalysis]KERBinsNormalized!col(2);
+range E_2NormCol = [KERAnalysis]KERBinsNormalized!col(3);
+range E_TNormCol = [KERAnalysis]KERBinsNormalized!col(4);
+
+normalize iy:=E_1Col method:=range oy:=E_1NormCol; E_1NormCol.lname$ = frag1$; E_1NormCol.unit$="[arb. units]"; wcolwidth irng:=E_1NormCol width:=8;
+normalize iy:=E_2Col method:=range oy:=E_2NormCol; E_2NormCol.lname$ = frag2$; E_2NormCol.unit$="[arb. units]"; wcolwidth irng:=E_2NormCol width:=8;
+normalize iy:=E_TCol method:=range oy:=E_TNormCol; E_TNormCol.lname$ = "total"; E_TNormCol.unit$="[arb. units]"; wcolwidth irng:=E_TNormCol width:=8;
+
+string wn$ = page.name$;
+win -r %(wn$) %(workbookShortName$);
